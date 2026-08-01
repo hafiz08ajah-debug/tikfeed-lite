@@ -1,152 +1,222 @@
-// 1. Konfigurasi Supabase
-// Pastikan ganti SUPABASE_URL dengan URL project Supabase milikmu (contoh: https://xyz.supabase.co)
-const SUPABASE_URL = "https://YOUR_SUPABASE_PROJECT_ID.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_Zr5p4t-xVFRaxByASamy4A_u8w5aoe5";
+// ==========================================
+// 1. KONFIGURASI SUPABASE
+// ==========================================
+// MASUKIN URL PROJECT SUPABASE LU DI BAWAH INI (Contoh: 'https://xyz.supabase.co')
+const supabaseUrl = 'MASUKKAN_URL_PROJECT_SUPABASE_LU_DISINI'; 
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Key publishable milik lu yang sudah diinput:
+const supabaseKey = 'sb_publishable_Zr5p4t-xVFRaxByASamy4A_u8w5aoe5'; 
 
-// Data Cadangan (Fallback Data) jika Supabase belum diisi atau gagal dimuat
-const fallbackVideos = [
-    {
-        id: "1",
-        username: "@kreatorfavorit",
-        caption: "Menikmati pemandangan alam indah hari ini! 🌿 #nature #vibes",
-        music: "Suara Asli - Musik Santai",
-        profile_pic: "https://picsum.photos/100/100?random=1",
-        video_url: "https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4",
-        likes: 1240,
-        comments: 89
-    },
-    {
-        id: "2",
-        username: "@codinglife",
-        caption: "Bikin TikTok Clone dengan JavaScript & Supabase! 🚀 #coding #developer",
-        music: "Coding Ambient Beats",
-        profile_pic: "https://picsum.photos/100/100?random=2",
-        video_url: "https://assets.mixkit.co/videos/preview/mixkit-hands-holding-a-smartphone-with-a-green-screen-41525-large.mp4",
-        likes: 3500,
-        comments: 210
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+const feedContainer = document.getElementById('feed-container');
+let globalMuted = true;
+
+// ==========================================
+// 2. FETCH DATA VIDEO DARI DATABASE SUPABASE
+// ==========================================
+async function fetchFeed() {
+    feedContainer.innerHTML = '<div style="text-align:center; padding-top: 50vh; color: #888;">Memuat Tikfeed_lite...</div>';
+
+    let { data: videos, error } = await supabase
+        .from('videos')
+        .select('*')
+        .order('id', { ascending: false });
+
+    if (error) {
+        console.error("Gagal mengambil data:", error);
+        feedContainer.innerHTML = '<div style="text-align:center; padding-top: 50vh;">Gagal koneksi ke database.<br>Cek Supabase URL & Key lu.</div>';
+        return;
     }
-];
 
-const videoFeed = document.getElementById("videoFeed");
-
-// 2. Fungsi Mengambil Data Video
-async function fetchVideos() {
-    try {
-        // Mengambil data dari tabel 'videos' di Supabase
-        let { data: videos, error } = await supabase
-            .from('videos')
-            .select('*');
-
-        if (error || !videos || videos.length === 0) {
-            console.warn("Menggunakan data cadangan (Supabase belum terisi atau terjadi error):", error);
-            renderVideos(fallbackVideos);
-        } else {
-            renderVideos(videos);
-        }
-    } catch (err) {
-        console.error("Gagal terhubung ke Supabase:", err);
-        renderVideos(fallbackVideos);
+    if (!videos || videos.length === 0) {
+        feedContainer.innerHTML = '<div style="text-align:center; padding-top: 50vh;">Belum ada video.<br>Klik tombol + Create di bawah!</div>';
+        return;
     }
+
+    renderFeed(videos);
 }
 
-// 3. Render Elemen Video ke DOM
-function renderVideos(videos) {
-    videoFeed.innerHTML = "";
+// ==========================================
+// 3. RENDER UI TIKTOK FEED
+// ==========================================
+function renderFeed(videos) {
+    feedContainer.innerHTML = ''; 
 
-    videos.forEach((video) => {
-        const videoCard = document.createElement("div");
-        videoCard.className = "video-card";
+    videos.forEach(video => {
+        const card = document.createElement('div');
+        card.className = 'video-card';
 
-        videoCard.innerHTML = `
-            <video loop playsinline src="${video.video_url}"></video>
+        card.innerHTML = `
+            <video src="${video.url}" loop playsinline muted></video>
+            <div class="sound-toggle" onclick="toggleSound(this)">🔇 Mute</div>
             
-            <div class="action-sidebar">
-                <img src="${video.profile_pic}" class="profile-icon" alt="Profile">
-                
-                <div class="action-btn" onclick="toggleLike(this, '${video.id}', ${video.likes})">
-                    <i class="fa-solid fa-heart"></i>
-                    <span class="like-count">${video.likes}</span>
+            <div class="overlay">
+                <div class="user-info">
+                    <div class="username">@${video.username || 'user'}</div>
+                    <div class="caption">${video.description || ''}</div>
                 </div>
-                
-                <div class="action-btn">
-                    <i class="fa-solid fa-comment-dots"></i>
-                    <span>${video.comments || 0}</span>
-                </div>
-
-                <div class="action-btn">
-                    <i class="fa-solid fa-bookmark"></i>
-                    <span>Save</span>
-                </div>
-                
-                <div class="action-btn">
-                    <i class="fa-solid fa-share"></i>
-                    <span>Share</span>
-                </div>
-            </div>
-
-            <div class="video-info">
-                <div class="username">${video.username}</div>
-                <div class="caption">${video.caption}</div>
-                <div class="music">
-                    <i class="fa-solid fa-music"></i>
-                    <span>${video.music}</span>
+                <div class="action-bar">
+                    <button class="btn-action" onclick="likeVideo(${video.id}, this)">
+                        ❤️ <span class="like-count">${video.likes || 0}</span>
+                    </button>
+                    <button class="btn-action" onclick="alert('Fitur Komentar Aktif!')">
+                        💬 <span>0</span>
+                    </button>
+                    <button class="btn-action" onclick="shareVideo('${video.url}')">
+                        🔗 <span>Bagikan</span>
+                    </button>
                 </div>
             </div>
         `;
 
-        videoFeed.appendChild(videoCard);
+        const videoElement = card.querySelector('video');
+
+        // Klik 1x buat Pause/Play
+        videoElement.addEventListener('click', (e) => {
+            if (videoElement.paused) videoElement.play();
+            else videoElement.pause();
+        });
+
+        // Double Click buat Efek Like (Love Animasi)
+        videoElement.addEventListener('dblclick', (e) => {
+            createHeartAnimation(e, card);
+            const likeBtn = card.querySelector('.btn-action');
+            likeVideo(video.id, likeBtn);
+        });
+
+        feedContainer.appendChild(card);
     });
 
-    setupIntersectionObserver();
+    initAutoplayObserver();
 }
 
-// 4. Autoplay & Pause Menggunakan Intersection Observer (Sesuai Scroll)
-function setupIntersectionObserver() {
+// ==========================================
+// 4. AUTOPLAY OBSERVER (Sama kayak TikTok)
+// ==========================================
+function initAutoplayObserver() {
     const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-            const video = entry.target.querySelector("video");
+        entries.forEach(entry => {
+            const video = entry.target;
             if (entry.isIntersecting) {
-                video.play().catch(e => console.log("Autoplay dicegah oleh browser:", e));
+                video.play().catch(() => {});
             } else {
                 video.pause();
-                video.currentTime = 0; // Reset ke awal jika tidak terlihat
+                video.currentTime = 0;
             }
         });
     }, { threshold: 0.6 });
 
-    document.querySelectorAll(".video-card").forEach((card) => {
-        observer.observe(card);
+    document.querySelectorAll('video').forEach(vid => observer.observe(vid));
+}
+
+// ==========================================
+// 5. FITUR SUARA (Mute / Unmute)
+// ==========================================
+function toggleSound(btnElement) {
+    globalMuted = !globalMuted;
+    document.querySelectorAll('video').forEach(vid => vid.muted = globalMuted);
+    
+    document.querySelectorAll('.sound-toggle').forEach(el => {
+        el.innerText = globalMuted ? '🔇 Mute' : '🔊 Sound On';
     });
 }
 
-// 5. Fungsi Interaksi Like (Mengirim Update ke Supabase)
-async function toggleLike(element, videoId, currentLikes) {
-    const icon = element.querySelector("i");
-    const countSpan = element.querySelector(".like-count");
-    const isLiked = icon.classList.contains("liked");
+// ==========================================
+// 6. FITUR ANIMASI DOUBLE TAP LIKE
+// ==========================================
+function createHeartAnimation(e, card) {
+    const heart = document.createElement('div');
+    heart.className = 'heart-pop';
+    heart.innerHTML = '❤️';
+    heart.style.left = `${e.clientX}px`;
+    heart.style.top = `${e.clientY}px`;
+    card.appendChild(heart);
 
-    let newCount = isLiked ? currentLikes : currentLikes + 1;
+    setTimeout(() => heart.remove(), 800);
+}
+
+// ==========================================
+// 7. FITUR LIKE DATABASE REALTIME
+// ==========================================
+async function likeVideo(videoId, btn) {
+    const countSpan = btn.querySelector('.like-count');
+    let currentLikes = parseInt(countSpan.innerText) + 1;
     
-    // UI Update langsung (Optimistic Update)
-    icon.classList.toggle("liked");
-    countSpan.textContent = newCount;
+    countSpan.innerText = currentLikes;
+    btn.classList.add('liked');
 
-    // Update Data ke Supabase
+    await supabase
+        .from('videos')
+        .update({ likes: currentLikes })
+        .eq('id', videoId);
+}
+
+// ==========================================
+// 8. FITUR SHARE LINK
+// ==========================================
+function shareVideo(url) {
+    navigator.clipboard.writeText(url);
+    alert('Link video disalin ke clipboard!');
+}
+
+// ==========================================
+// 9. FITUR UPLOAD VIDEO KE SUPABASE
+// ==========================================
+function openUploadModal() { document.getElementById('uploadModal').style.display = 'flex'; }
+function closeUploadModal() { document.getElementById('uploadModal').style.display = 'none'; }
+
+async function handleUpload() {
+    const username = document.getElementById('inputUsername').value.trim();
+    const caption = document.getElementById('inputCaption').value.trim();
+    const fileInput = document.getElementById('inputFile');
+    const file = fileInput.files[0];
+
+    if (!username || !file) {
+        alert("Username dan file video wajib dipilih!");
+        return;
+    }
+
+    alert("Sedang mengunggah video ke Supabase...");
+
     try {
-        const { error } = await supabase
-            .from('videos')
-            .update({ likes: newCount })
-            .eq('id', videoId);
+        const fileName = `${Date.now()}_${file.name}`;
+        
+        // Upload ke Storage Bucket
+        const { data: storageData, error: storageError } = await supabase.storage
+            .from('tikfeed_videos')
+            .upload(fileName, file);
 
-        if (error) {
-            console.error("Gagal mengupdate likes ke Supabase:", error);
-        }
+        if (storageError) throw storageError;
+
+        // Ambil URL Publik Video
+        const { data: publicUrlData } = supabase.storage
+            .from('tikfeed_videos')
+            .getPublicUrl(fileName);
+
+        const videoPublicUrl = publicUrlData.publicUrl;
+
+        // Insert ke Tabel
+        const { error: dbError } = await supabase
+            .from('videos')
+            .insert([{
+                username: username,
+                description: caption,
+                url: videoPublicUrl,
+                likes: 0
+            }]);
+
+        if (dbError) throw dbError;
+
+        alert("Video berhasil di-publish!");
+        closeUploadModal();
+        fetchFeed();
+
     } catch (err) {
-        console.error("Error saat update database:", err);
+        console.error("Upload error:", err);
+        alert("Gagal upload: " + err.message);
     }
 }
 
-// Jalankan aplikasi saat dokumen selesai dimuat
-document.addEventListener("DOMContentLoaded", fetchVideos);
+// Buka Feed Pertama Kali
+fetchFeed();
