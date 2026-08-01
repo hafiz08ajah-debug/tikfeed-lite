@@ -1,62 +1,50 @@
-// Mock Data Video untuk Tikfeed Lite
-const mockVideos = [
-  {
-    id: 1,
-    username: "user_kreatif",
-    caption: "Ujicoba Tikfeed Lite versi 4 file gratisan! 🔥 Bikin via HP tanpa modal! #tikfeed #fyp",
-    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-lighting-1230-large.mp4",
-    likes: 1240,
-    isLiked: false,
-    commentsCount: 45,
-    commentsList: [
-      { user: "rudi_tekno", text: "Mantap bang, aplikasinya ringan banget!" },
-      { user: "sari_design", text: "Visualnya keren pol! 🔥" }
-    ],
-    music: "Suara Asli - @user_kreatif"
-  },
-  {
-    id: 2,
-    username: "cinematic_vibes",
-    caption: "Visual malam hari di kota. Suka gaya cinematic estetik gini? 🌃 #cinematic #night",
-    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-vertical-shot-of-a-neon-lit-city-street-41563-large.mp4",
-    likes: 890,
-    isLiked: false,
-    commentsCount: 12,
-    commentsList: [
-      { user: "andri_vlog", text: "Pake filter apa ini bro?" }
-    ],
-    music: "Lofi Beats - Night Walk"
-  },
-  {
-    id: 3,
-    username: "dark_aesthetic",
-    caption: "Street style aesthetic test video! 🎬 #streetwear #aesthetic #fashion",
-    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-hands-holding-a-smartphone-with-green-screen-41544-large.mp4",
-    likes: 3410,
-    isLiked: false,
-    commentsCount: 128,
-    commentsList: [
-      { user: "gading_style", text: "Outfitnya dapet dari mana bang?" },
-      { user: "reza_gaming", text: "Spill lagunya dong!" }
-    ],
-    music: "Dark Synth - Audio Trend"
-  }
-];
+// 1. Inisialisasi Supabase Client
+const SUPABASE_URL = 'https://vchoytldpoavasrs.supabase.co'; // Sesuaikan jika ada perbedaan suffix URL
+const SUPABASE_KEY = 'sb_publishable_Zr5p4t-xVFRaxByASamy4A_u8w5aoe5';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+let mockVideos = [];
 let activeVideoIndex = 0;
 
-// Render daftar video ke dalam Swiper Slider
+// 2. Ambil Data Video dari Supabase Database
+async function fetchVideosFromSupabase() {
+  const { data, error } = await supabaseClient
+    .from('videos')
+    .select('*, comments(*)');
+
+  if (error) {
+    console.error('Gagal mengambil data dari Supabase:', error);
+    return;
+  }
+
+  // Format data Supabase ke struktur Tikfeed
+  mockVideos = data.map(v => ({
+    id: v.id,
+    username: v.username,
+    caption: v.caption,
+    videoUrl: v.video_url,
+    likes: v.likes || 0,
+    isLiked: false,
+    commentsCount: v.comments ? v.comments.length : 0,
+    commentsList: v.comments ? v.comments.map(c => ({ user: c.username, text: c.comment_text })) : [],
+    music: v.music || "Suara Asli"
+  }));
+
+  renderVideos();
+}
+
+// 3. Render daftar video ke HTML
 function renderVideos() {
   const container = document.getElementById("videoContainer");
+  if (!container) return;
   
   container.innerHTML = mockVideos.map((video, index) => `
     <div class="swiper-slide">
       <video loop playsinline preload="metadata" class="feed-video" src="${video.videoUrl}"></video>
       
-      <!-- Gradient Shadow Background -->
       <div class="absolute inset-0 gradient-overlay pointer-events-none"></div>
 
-      <!-- User Info & Caption Overlay -->
+      <!-- User Info & Caption -->
       <div class="absolute bottom-16 left-4 z-10 max-w-[72%] text-left">
         <div class="flex items-center gap-2 mb-2">
           <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-400 p-0.5">
@@ -76,9 +64,8 @@ function renderVideos() {
         </div>
       </div>
 
-      <!-- Right Action Bar -->
+      <!-- Action Buttons -->
       <div class="absolute right-3 bottom-20 z-10 flex flex-col items-center gap-4">
-        <!-- Tombol Like -->
         <button onclick="toggleLike(${index})" class="flex flex-col items-center">
           <div class="w-11 h-11 rounded-full glass-btn flex items-center justify-center text-xl transition-all duration-200 active:scale-125 ${video.isLiked ? 'text-red-500 bg-red-500/20' : 'text-white'}">
             ${video.isLiked ? '❤️' : '🤍'}
@@ -86,7 +73,6 @@ function renderVideos() {
           <span class="text-[11px] mt-1 font-semibold">${formatNumber(video.likes)}</span>
         </button>
 
-        <!-- Tombol Komentar -->
         <button onclick="openComments(${index})" class="flex flex-col items-center">
           <div class="w-11 h-11 rounded-full glass-btn flex items-center justify-center text-xl text-white">
             💬
@@ -94,7 +80,6 @@ function renderVideos() {
           <span class="text-[11px] mt-1 font-semibold">${formatNumber(video.commentsCount)}</span>
         </button>
 
-        <!-- Tombol Share -->
         <button onclick="shareVideo('${video.caption}')" class="flex flex-col items-center">
           <div class="w-11 h-11 rounded-full glass-btn flex items-center justify-center text-xl text-white">
             🔗
@@ -102,7 +87,6 @@ function renderVideos() {
           <span class="text-[11px] mt-1 font-semibold">Bagikan</span>
         </button>
 
-        <!-- Audio Vinyl Disc Animation -->
         <div class="w-9 h-9 rounded-full border-2 border-zinc-700 bg-zinc-900 flex items-center justify-center animate-spin-slow mt-1 overflow-hidden shadow-lg">
           <div class="w-3 h-3 rounded-full bg-pink-500"></div>
         </div>
@@ -111,19 +95,16 @@ function renderVideos() {
   `).join('');
 }
 
-// Inisialisasi App
+// 4. Init App
 document.addEventListener("DOMContentLoaded", () => {
-  renderVideos();
+  fetchVideosFromSupabase();
 
-  // Inisialisasi Swiper Vertical
   const swiper = new Swiper('.mySwiper', {
     direction: 'vertical',
     mousewheel: true,
     keyboard: true,
     on: {
-      init: function () {
-        playCurrentVideo(this);
-      },
+      init: function () { playCurrentVideo(this); },
       slideChange: function () {
         activeVideoIndex = this.activeIndex;
         playCurrentVideo(this);
@@ -131,19 +112,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Tap layar untuk Play / Pause video
   document.addEventListener('click', (e) => {
     if (e.target.tagName === 'VIDEO') {
-      if (e.target.paused) {
-        e.target.play();
-      } else {
-        e.target.pause();
-      }
+      e.target.paused ? e.target.play() : e.target.pause();
     }
   });
 });
 
-// Play Video yang sedang aktif, Pause video lain
 function playCurrentVideo(swiperInstance) {
   const allVideos = document.querySelectorAll('.feed-video');
   allVideos.forEach(v => v.pause());
@@ -157,22 +132,25 @@ function playCurrentVideo(swiperInstance) {
   }
 }
 
-// Helper Format Angka (Contoh: 1200 -> 1.2k)
 function formatNumber(num) {
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'k';
-  }
-  return num;
+  return num >= 1000 ? (num / 1000).toFixed(1) + 'k' : num;
 }
 
-// Handler Like Button
-function toggleLike(index) {
-  mockVideos[index].isLiked = !mockVideos[index].isLiked;
-  mockVideos[index].likes += mockVideos[index].isLiked ? 1 : -1;
+// 5. Update Like ke Database Supabase
+async function toggleLike(index) {
+  const video = mockVideos[index];
+  video.isLiked = !video.isLiked;
+  video.likes += video.isLiked ? 1 : -1;
+  
   renderVideos();
+
+  await supabaseClient
+    .from('videos')
+    .update({ likes: video.likes })
+    .eq('id', video.id);
 }
 
-// Modal Komentar
+// 6. Modal & Tambah Komentar ke Database Supabase
 function openComments(index) {
   activeVideoIndex = index;
   const modal = document.getElementById("commentModal");
@@ -199,39 +177,35 @@ function openComments(index) {
 
 function toggleComments(show) {
   const modal = document.getElementById("commentModal");
-  if (show) {
-    modal.classList.remove("hidden");
-  } else {
-    modal.classList.add("hidden");
+  show ? modal.classList.remove("hidden") : modal.classList.add("hidden");
+}
+
+async function addComment(event) {
+  event.preventDefault();
+  const input = document.getElementById("commentInput");
+  const text = input.value.trim();
+  if (!text) return;
+
+  const currentVideo = mockVideos[activeVideoIndex];
+
+  const { error } = await supabaseClient
+    .from('comments')
+    .insert([{ video_id: currentVideo.id, username: 'user_kamu', comment_text: text }]);
+
+  if (!error) {
+    currentVideo.commentsList.push({ user: 'user_kamu', text: text });
+    currentVideo.commentsCount += 1;
+    input.value = "";
+    openComments(activeVideoIndex);
+    renderVideos();
   }
 }
 
-function addComment(event) {
-  event.preventDefault();
-  const input = document.getElementById("commentInput");
-  if (!input.value.trim()) return;
-
-  mockVideos[activeVideoIndex].commentsList.push({
-    user: "kamu",
-    text: input.value.trim()
-  });
-  mockVideos[activeVideoIndex].commentsCount += 1;
-  
-  input.value = "";
-  openComments(activeVideoIndex);
-  renderVideos();
-}
-
-// Share Handler
 function shareVideo(caption) {
   if (navigator.share) {
-    navigator.share({
-      title: 'Tikfeed Lite',
-      text: caption,
-      url: window.location.href,
-    }).catch(() => {});
+    navigator.share({ title: 'Tikfeed Lite', text: caption, url: window.location.href }).catch(() => {});
   } else {
     navigator.clipboard.writeText(window.location.href);
-    alert("Link video berhasil disalin!");
+    alert("Link disalin!");
   }
 }
