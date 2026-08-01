@@ -1,50 +1,105 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TikFeed - TikTok Clone</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    /* Menyembunyikan scrollbar untuk tampilan mirip aplikasi native */
-    .no-scrollbar::-webkit-scrollbar {
-      display: none;
-    }
-    .no-scrollbar {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-  </style>
-</head>
-<body class="bg-black flex justify-center items-center min-h-screen text-white font-sans antialiased">
-
-  <div class="relative w-full max-w-sm h-[100dvh] bg-black overflow-hidden flex flex-col border-x border-zinc-900">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Clone</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <header class="absolute top-0 left-0 right-0 z-30 flex justify-center items-center gap-6 py-4 bg-gradient-to-b from-black/70 to-transparent text-sm font-semibold pointer-events-none">
-      <span class="opacity-60 cursor-pointer pointer-events-auto">Mengikuti</span>
-      <span class="border-b-2 border-white pb-0.5 cursor-pointer pointer-events-auto">Untuk Anda</span>
-    </header>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
 
-    <main id="videoContainer" class="w-full h-full overflow-y-scroll snap-y snap-mandatory no-scrollbar flex-1">
-      </main>
+        body {
+            background-color: #000;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
 
-    <nav class="absolute bottom-0 left-0 right-0 z-30 h-14 bg-black border-t border-zinc-900 flex justify-around items-center text-xs">
-      <button class="flex flex-col items-center gap-1 font-bold text-white">
-        <span>🏠</span>
-        <span>Beranda</span>
-      </button>
-      <button id="btnUpload" class="flex items-center justify-center w-10 h-7 rounded-lg bg-white text-black font-bold text-lg active:scale-95 transition">
-        +
-      </button>
-      <button class="flex flex-col items-center gap-1 text-zinc-400">
-        <span>👤</span>
-        <span>Profil</span>
-      </button>
-    </nav>
+        /* Container Utama (Simulasi Layar HP) */
+        .app-container {
+            width: 100%;
+            max-width: 420px;
+            height: 100vh;
+            background-color: #000;
+            position: relative;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
 
-  </div>
+        /* Header / Top Navigation */
+        .top-nav {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            z-index: 10;
+            background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%);
+            gap: 20px;
+            font-weight: 600;
+            font-size: 16px;
+        }
 
-  <script src="app.js"></script>
-</body>
-</html>
+        .top-nav span {
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+        }
+
+        .top-nav span.active {
+            color: #fff;
+            border-bottom: 2px solid #fff;
+            padding-bottom: 2px;
+        }
+
+        /* Video Feed Container (Snap Scroll) */
+        .video-feed {
+            width: 100%;
+            height: 100%;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none; /* Firefox */
+        }
+
+        .video-feed::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
+        }
+
+        /* Video Card Item */
+        .video-card {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            scroll-snap-align: start;
+            background-color: #121212;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Overlay Kanan (Action Sidebar) */
+        .action-sidebar {
+            position: absolute;
+            right: 12px;
+            bottom: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
