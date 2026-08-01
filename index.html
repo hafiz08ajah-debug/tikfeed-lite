@@ -2,104 +2,218 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TikTok Clone</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tikfeed_lite</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body, html { 
+            height: 100%; 
+            width: 100%;
+            background: #000; 
+            color: #fff; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            overflow: hidden; 
         }
 
-        body {
-            background-color: #000;
-            color: #fff;
+        /* Container Feed utama */
+        #feed-container { 
+            height: 100vh; 
+            width: 100vw;
+            overflow-y: scroll; 
+            scroll-snap-type: y mandatory; 
+            scrollbar-width: none; 
+        }
+        #feed-container::-webkit-scrollbar { display: none; }
+
+        /* Card Video */
+        .video-card { 
+            height: 100vh; 
+            width: 100%; 
+            scroll-snap-align: start; 
+            position: relative; 
+            background: #000; 
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            overflow: hidden;
         }
 
-        /* Container Utama (Simulasi Layar HP) */
-        .app-container {
-            width: 100%;
-            max-width: 420px;
-            height: 100vh;
-            background-color: #000;
-            position: relative;
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        video { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+        }
+
+        /* Top Header Navigation */
+        .top-header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            z-index: 20;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
+        }
+        .top-header span { cursor: pointer; opacity: 0.6; }
+        .top-header span.active { opacity: 1; border-bottom: 2px solid #fff; padding-bottom: 2px; }
+
+        /* Floating Sound Toggle */
+        .sound-toggle {
+            position: absolute;
+            top: 60px;
+            right: 15px;
+            background: rgba(0,0,0,0.4);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+        }
+
+        /* Right Action Bar (TikTok Style) */
+        .overlay { 
+            position: absolute; 
+            bottom: 25px; 
+            left: 15px; 
+            right: 15px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-end; 
+            pointer-events: none; 
+            z-index: 10;
+        }
+
+        .user-info { max-width: 75%; pointer-events: auto; }
+        .username { font-weight: bold; font-size: 1.1rem; margin-bottom: 8px; text-shadow: 1px 1px 4px rgba(0,0,0,0.8); }
+        .caption { font-size: 0.95rem; text-shadow: 1px 1px 4px rgba(0,0,0,0.8); line-height: 1.3; }
+
+        .action-bar { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 20px; 
+            align-items: center; 
+            pointer-events: auto; 
+        }
+
+        .btn-action { 
+            background: transparent;
+            border: none;
+            color: #fff;
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            font-size: 1.8rem;
+            cursor: pointer;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        .btn-action span { font-size: 0.75rem; font-weight: bold; margin-top: 4px; }
+        .btn-action.liked { color: #ff0050; }
+
+        /* Heart Pop Animation */
+        .heart-pop {
+            position: absolute;
+            font-size: 80px;
+            color: #ff0050;
+            animation: pop 0.8s ease forwards;
+            pointer-events: none;
+            z-index: 30;
+        }
+        @keyframes pop {
+            0% { opacity: 1; transform: scale(0.5) translate(-50%, -50%); }
+            50% { transform: scale(1.3) translate(-50%, -50%); }
+            100% { opacity: 0; transform: scale(1) translate(-50%, -100%); }
+        }
+
+        /* Floating Upload Button */
+        .upload-btn {
+            position: fixed;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(45deg, #00f2fe, #ff0050);
+            border: none;
+            color: #fff;
+            font-weight: bold;
+            padding: 8px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            font-size: 1rem;
+        }
+
+        /* Upload Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #1c1c1e;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 380px;
             display: flex;
             flex-direction: column;
+            gap: 12px;
         }
 
-        /* Header / Top Navigation */
-        .top-nav {
-            position: absolute;
-            top: 0;
+        .modal-content h3 { text-align: center; }
+        .modal-content input, .modal-content textarea {
             width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 15px;
-            z-index: 10;
-            background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%);
-            gap: 20px;
-            font-weight: 600;
-            font-size: 16px;
+            padding: 10px;
+            background: #2c2c2e;
+            border: 1px solid #3a3a3c;
+            color: white;
+            border-radius: 8px;
+            outline: none;
         }
 
-        .top-nav span {
-            color: rgba(255, 255, 255, 0.6);
+        .modal-content button {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
             cursor: pointer;
         }
+        .btn-submit { background: #ff0050; color: white; }
+        .btn-cancel { background: #3a3a3c; color: white; }
+    </style>
+</head>
+<body>
 
-        .top-nav span.active {
-            color: #fff;
-            border-bottom: 2px solid #fff;
-            padding-bottom: 2px;
-        }
+    <div class="top-header">
+        <span>Mengikuti</span>
+        <span class="active">Untuk Anda</span>
+    </div>
 
-        /* Video Feed Container (Snap Scroll) */
-        .video-feed {
-            width: 100%;
-            height: 100%;
-            overflow-y: scroll;
-            scroll-snap-type: y mandatory;
-            scrollbar-width: none; /* Firefox */
-        }
+    <div id="feed-container"></div>
 
-        .video-feed::-webkit-scrollbar {
-            display: none; /* Chrome/Safari */
-        }
+    <button class="upload-btn" onclick="openUploadModal()">+ Create</button>
 
-        /* Video Card Item */
-        .video-card {
-            position: relative;
-            width: 100%;
-            height: 100vh;
-            scroll-snap-align: start;
-            background-color: #121212;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
+    <div id="uploadModal" class="modal">
+        <div class="modal-content">
+            <h3>Upload Ke Tikfeed Lite</h3>
+            <input type="text" id="inputUsername" placeholder="Username (tanpa @)">
+            <textarea id="inputCaption" placeholder="Tulis caption..."></textarea>
+            <input type="file" id="inputFile" accept="video/mp4,video/mkv">
+            <button class="btn-submit" onclick="handleUpload()">Publish Video</button>
+            <button class="btn-cancel" onclick="closeUploadModal()">Batal</button>
+        </div>
+    </div>
 
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        /* Overlay Kanan (Action Sidebar) */
-        .action-sidebar {
-            position: absolute;
-            right: 12px;
-            bottom: 100px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
+</body>
+</html>
+.
