@@ -1,36 +1,60 @@
 // 1. Inisialisasi Supabase Client
-const SUPABASE_URL = 'https://vchoytldpoavasrs.supabase.co'; // Sesuaikan jika ada perbedaan suffix URL
+const SUPABASE_URL = 'https://vchoytldpoavasrs.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Zr5p4t-xVFRaxByASamy4A_u8w5aoe5';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Data Cadangan (Pencegah layar blank jika database kosong/error)
+const defaultVideos = [
+  {
+    id: 1,
+    username: "cinematic_vibes",
+    caption: "Ujicoba Tikfeed Lite versi Supabase! 🚀 #tikfeed",
+    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-tokyo-street-at-night-42867-large.mp4",
+    likes: 120,
+    isLiked: false,
+    commentsCount: 2,
+    commentsList: [
+      { user: "user_1", text: "Keren bang websitenya!" },
+      { user: "dev_sutera", text: "Lancar jaya 🔥" }
+    ],
+    music: "Suara Asli - @cinematic_vibes"
+  }
+];
 
 let mockVideos = [];
 let activeVideoIndex = 0;
 
 // 2. Ambil Data Video dari Supabase Database
 async function fetchVideosFromSupabase() {
-  const { data, error } = await supabaseClient
-    .from('videos')
-    .select('*, comments(*)');
+  try {
+    const { data, error } = await supabaseClient
+      .from('videos')
+      .select('*, comments(*)');
 
-  if (error) {
-    console.error('Gagal mengambil data dari Supabase:', error);
-    return;
+    if (error || !data || data.length === 0) {
+      console.warn('Gagal ambil dari Supabase / data kosong, menggunakan default:', error);
+      mockVideos = defaultVideos;
+    } else {
+      // Format data Supabase ke struktur Tikfeed
+      mockVideos = data.map(v => ({
+        id: v.id,
+        username: v.username || 'user',
+        caption: v.caption || '',
+        videoUrl: v.video_url,
+        likes: v.likes || 0,
+        isLiked: false,
+        commentsCount: v.comments ? v.comments.length : 0,
+        commentsList: v.comments ? v.comments.map(c => ({ user: c.username, text: c.comment_text })) : [],
+        music: v.music || "Suara Asli"
+      }));
+    }
+  } catch (err) {
+    console.error('Error saat fetch:', err);
+    mockVideos = defaultVideos;
   }
 
-  // Format data Supabase ke struktur Tikfeed
-  mockVideos = data.map(v => ({
-    id: v.id,
-    username: v.username,
-    caption: v.caption,
-    videoUrl: v.video_url,
-    likes: v.likes || 0,
-    isLiked: false,
-    commentsCount: v.comments ? v.comments.length : 0,
-    commentsList: v.comments ? v.comments.map(c => ({ user: c.username, text: c.comment_text })) : [],
-    music: v.music || "Suara Asli"
-  }));
-
   renderVideos();
+  initSwiper();
 }
 
 // 3. Render daftar video ke HTML
@@ -39,8 +63,8 @@ function renderVideos() {
   if (!container) return;
   
   container.innerHTML = mockVideos.map((video, index) => `
-    <div class="swiper-slide">
-      <video loop playsinline preload="metadata" class="feed-video" src="${video.videoUrl}"></video>
+    <div class="swiper-slide relative w-full h-full bg-black">
+      <video loop playsinline preload="metadata" class="feed-video w-full h-full object-cover" src="${video.videoUrl}"></video>
       
       <div class="absolute inset-0 gradient-overlay pointer-events-none"></div>
 
@@ -95,10 +119,8 @@ function renderVideos() {
   `).join('');
 }
 
-// 4. Init App
-document.addEventListener("DOMContentLoaded", () => {
-  fetchVideosFromSupabase();
-
+// 4. Inisialisasi Swiper Slider
+function initSwiper() {
   const swiper = new Swiper('.mySwiper', {
     direction: 'vertical',
     mousewheel: true,
@@ -117,7 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
       e.target.paused ? e.target.play() : e.target.pause();
     }
   });
-});
+}
 
 function playCurrentVideo(swiperInstance) {
   const allVideos = document.querySelectorAll('.feed-video');
@@ -136,7 +158,7 @@ function formatNumber(num) {
   return num >= 1000 ? (num / 1000).toFixed(1) + 'k' : num;
 }
 
-// 5. Update Like ke Database Supabase
+// 5. Update Like ke Supabase
 async function toggleLike(index) {
   const video = mockVideos[index];
   video.isLiked = !video.isLiked;
@@ -144,13 +166,15 @@ async function toggleLike(index) {
   
   renderVideos();
 
-  await supabaseClient
-    .from('videos')
-    .update({ likes: video.likes })
-    .eq('id', video.id);
+  if (video.id) {
+    await supabaseClient
+      .from('videos')
+      .update({ likes: video.likes })
+      .eq('id', video.id);
+  }
 }
 
-// 6. Modal & Tambah Komentar ke Database Supabase
+// 6. Modal Komentar
 function openComments(index) {
   activeVideoIndex = index;
   const modal = document.getElementById("commentModal");
@@ -188,17 +212,17 @@ async function addComment(event) {
 
   const currentVideo = mockVideos[activeVideoIndex];
 
-  const { error } = await supabaseClient
-    .from('comments')
-    .insert([{ video_id: currentVideo.id, username: 'user_kamu', comment_text: text }]);
-
-  if (!error) {
-    currentVideo.commentsList.push({ user: 'user_kamu', text: text });
-    currentVideo.commentsCount += 1;
-    input.value = "";
-    openComments(activeVideoIndex);
-    renderVideos();
+  if (currentVideo.id) {
+    await supabaseClient
+      .from('comments')
+      .insert([{ video_id: currentVideo.id, username: 'user_kamu', comment_text: text }]);
   }
+
+  currentVideo.commentsList.push({ user: 'user_kamu', text: text });
+  currentVideo.commentsCount += 1;
+  input.value = "";
+  openComments(activeVideoIndex);
+  renderVideos();
 }
 
 function shareVideo(caption) {
@@ -209,3 +233,8 @@ function shareVideo(caption) {
     alert("Link disalin!");
   }
 }
+
+// Mulai aplikasi saat halaman siap
+document.addEventListener("DOMContentLoaded", () => {
+  fetchVideosFromSupabase();
+});
