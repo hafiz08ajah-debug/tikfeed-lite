@@ -2,262 +2,49 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>TikTok Lite - Ultimate Edition</title>
-  
-  <!-- Tailwind CSS CDN -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TikFeed - TikTok Clone</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Swiper CSS CDN -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
-  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    *, *::before, *::after {
-      box-sizing: border-box;
+    /* Menyembunyikan scrollbar untuk tampilan mirip aplikasi native */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
     }
-    html, body {
-      height: 100dvh;
-      width: 100vw;
-      background-color: #000;
-      color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      user-select: none;
-      -webkit-user-select: none;
-      overflow: hidden;
-      margin: 0;
-      padding: 0;
-    }
-    
-    .gradient-top {
-      background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
-    }
-
-    .gradient-bottom {
-      background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0) 100%);
-    }
-
-    @keyframes spinVinyl {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-    .animate-vinyl {
-      animation: spinVinyl 4s linear infinite;
-    }
-
-    .feed-video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    /* Custom smooth scrollbar */
-    ::-webkit-scrollbar {
-      width: 4px;
-    }
-    ::-webkit-scrollbar-track {
-      background: rgba(0,0,0,0.1);
-    }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(255,255,255,0.2);
-      border-radius: 4px;
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
     }
   </style>
 </head>
-<body class="h-[100dvh] w-screen overflow-hidden relative bg-black">
+<body class="bg-black flex justify-center items-center min-h-screen text-white font-sans antialiased">
 
-  <!-- HIDDEN FILE INPUT FOR PHONE ALBUM / GALLERY ACCESS -->
-  <input type="file" id="mediaInput" accept="video/*,image/*" class="hidden" onchange="handleFileSelect(event)">
-
-  <!-- 1. SISI ATAS (HEADER BAR) -->
-  <header class="fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-4 pt-4 pb-3 gradient-top pointer-events-none">
-    <!-- Kiri Atas: Akses Kamera / Live / Studio -->
-    <button onclick="openCameraOrLive()" class="pointer-events-auto text-white/90 active:opacity-60 p-1 flex items-center gap-1 transition-transform active:scale-95">
-      <svg class="w-6 h-6 text-pink-500 drop-shadow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-    </button>
+  <div class="relative w-full max-w-sm h-[100dvh] bg-black overflow-hidden flex flex-col border-x border-zinc-900">
     
-    <!-- Tengah Atas: Tab Navigasi Feed -->
-    <div class="flex items-center gap-5 text-sm font-semibold pointer-events-auto">
-      <span onclick="switchTab('following')" id="tabFollowing" class="text-white/60 cursor-pointer transition-colors hover:text-white pb-0.5">Mengikuti</span>
-      <span onclick="switchTab('foryou')" id="tabForyou" class="text-white border-b-2 border-white pb-0.5 font-bold cursor-pointer drop-shadow">Untuk Anda</span>
-    </div>
+    <header class="absolute top-0 left-0 right-0 z-30 flex justify-center items-center gap-6 py-4 bg-gradient-to-b from-black/70 to-transparent text-sm font-semibold pointer-events-none">
+      <span class="opacity-60 cursor-pointer pointer-events-auto">Mengikuti</span>
+      <span class="border-b-2 border-white pb-0.5 cursor-pointer pointer-events-auto">Untuk Anda</span>
+    </header>
 
-    <!-- Kanan Atas: Pencarian -->
-    <button onclick="toggleSearchModal(true)" class="pointer-events-auto text-white/90 active:opacity-60 p-1 transition-transform active:scale-95">
-      <svg class="w-6 h-6 drop-shadow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-    </button>
-  </header>
+    <main id="videoContainer" class="w-full h-full overflow-y-scroll snap-y snap-mandatory no-scrollbar flex-1">
+      </main>
 
-  <!-- 4. SISI KIRI & AREA LAYAR UTAMA (SWIPER FEED) -->
-  <div class="swiper mySwiper w-full h-full">
-    <div class="swiper-wrapper" id="videoContainer"></div>
+    <nav class="absolute bottom-0 left-0 right-0 z-30 h-14 bg-black border-t border-zinc-900 flex justify-around items-center text-xs">
+      <button class="flex flex-col items-center gap-1 font-bold text-white">
+        <span>🏠</span>
+        <span>Beranda</span>
+      </button>
+      <button id="btnUpload" class="flex items-center justify-center w-10 h-7 rounded-lg bg-white text-black font-bold text-lg active:scale-95 transition">
+        +
+      </button>
+      <button class="flex flex-col items-center gap-1 text-zinc-400">
+        <span>👤</span>
+        <span>Profil</span>
+      </button>
+    </nav>
+
   </div>
 
-  <!-- 3. SISI BAWAH (BOTTOM NAVIGATION BAR) -->
-  <nav class="fixed bottom-0 left-0 right-0 z-40 bg-black/95 backdrop-blur-md border-t border-zinc-800/80 px-4 py-2 flex justify-between items-center text-[10px] h-14">
-    <button onclick="setActiveNav('home')" id="navHome" class="flex flex-col items-center gap-1 text-white transition-transform active:scale-95">
-      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-      <span class="font-semibold">Beranda</span>
-    </button>
-
-    <button onclick="setActiveNav('friends'); toggleInboxModal(true, 'Teman & Aktivitas')" id="navFriends" class="flex flex-col items-center gap-1 text-zinc-400 transition-transform active:scale-95">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-      <span>Teman</span>
-    </button>
-
-    <!-- Tombol Upload '+' (Langsung Buka Album / Galeri HP) -->
-    <button onclick="openGallery()" class="relative w-11 h-7 flex items-center justify-center active:scale-90 transition-transform">
-      <div class="absolute inset-0 bg-cyan-400 rounded-lg -translate-x-[2px]"></div>
-      <div class="absolute inset-0 bg-pink-500 rounded-lg translate-x-[2px]"></div>
-      <div class="relative w-full h-full bg-white rounded-lg flex items-center justify-center text-black font-extrabold text-lg shadow-md">+</div>
-    </button>
-
-    <button onclick="setActiveNav('inbox'); toggleInboxModal(true, 'Kotak Masuk')" id="navInbox" class="flex flex-col items-center gap-1 text-zinc-400 transition-transform active:scale-95">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-      <span>Kotak Masuk</span>
-    </button>
-
-    <button onclick="setActiveNav('profile'); toggleProfileModal(true)" id="navProfile" class="flex flex-col items-center gap-1 text-zinc-400 transition-transform active:scale-95">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-      <span>Profil</span>
-    </button>
-  </nav>
-
-  <!-- MODAL PREVIEW & POSTING MEDIA DARI GALERI HP -->
-  <div id="uploadModal" class="fixed inset-0 bg-black/90 z-50 hidden flex flex-col justify-end backdrop-blur-sm">
-    <div class="bg-zinc-900 rounded-t-3xl p-5 h-[82vh] flex flex-col shadow-2xl border-t border-zinc-800 overflow-y-auto">
-      <div class="flex justify-between items-center mb-3 border-b border-zinc-800 pb-3">
-        <h3 class="font-bold text-sm text-white flex items-center gap-2">🎬 Posting Konten Baru</h3>
-        <button onclick="toggleUploadModal(false)" class="text-zinc-400 font-bold text-xl hover:text-white px-2">&times;</button>
-      </div>
-
-      <!-- Preview Box -->
-      <div class="w-full h-48 bg-black rounded-xl overflow-hidden mb-4 flex items-center justify-center border border-zinc-800 relative shadow-inner">
-        <video id="previewVideo" class="w-full h-full object-contain hidden" controls></video>
-        <img id="previewImage" class="w-full h-full object-contain hidden" alt="Preview Media">
-        <div id="previewPlaceholder" class="text-xs text-zinc-500">Media siap diunggah</div>
-      </div>
-      
-      <form onsubmit="handleUploadMedia(event)" class="space-y-3">
-        <div>
-          <label class="block text-[11px] text-zinc-400 mb-1 font-semibold">Username Kreator</label>
-          <input type="text" id="uploadUsername" required value="ceopay_official" class="w-full bg-zinc-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none border border-zinc-700 font-medium">
-        </div>
-
-        <div>
-          <label class="block text-[11px] text-zinc-400 mb-1 font-semibold">Caption & Hashtag</label>
-          <textarea id="uploadCaption" rows="2" required placeholder="Ceritakan tentang video kamu... #fyp" class="w-full bg-zinc-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none border border-zinc-700"></textarea>
-        </div>
-
-        <div>
-          <label class="block text-[11px] text-zinc-400 mb-1 font-semibold">Sound / Musik</label>
-          <input type="text" id="uploadMusic" placeholder="Suara Asli - @ceopay_official" class="w-full bg-zinc-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none border border-zinc-700">
-        </div>
-
-        <button type="submit" id="btnSubmitPost" class="w-full bg-gradient-to-r from-pink-600 to-rose-500 hover:from-pink-500 hover:to-rose-400 text-white font-bold py-3.5 rounded-xl text-xs transition-all active:scale-98 shadow-lg shadow-pink-600/30 mt-3">
-          🚀 Publikasikan Sekarang
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- MODAL KOMENTAR INTERAKTIF -->
-  <div id="commentModal" class="fixed inset-0 bg-black/60 z-50 hidden flex flex-col justify-end backdrop-blur-xs">
-    <div class="bg-zinc-900 rounded-t-3xl p-4 h-[65vh] flex flex-col shadow-2xl border-t border-zinc-800">
-      <div class="flex justify-between items-center mb-3 border-b border-zinc-800 pb-2">
-        <div class="w-6"></div>
-        <h4 id="commentCountHeader" class="font-bold text-xs text-center text-zinc-200">0 Komentar</h4>
-        <button onclick="toggleComments(false)" class="text-zinc-400 font-bold text-xl hover:text-white px-2">&times;</button>
-      </div>
-      <div id="commentList" class="flex-1 overflow-y-auto space-y-4 my-2 pr-1"></div>
-      <form onsubmit="addComment(event)" class="flex items-center gap-2 border-t border-zinc-800/80 pt-3 mt-auto">
-        <input type="text" id="commentInput" placeholder="Tambahkan komentar..." class="flex-1 bg-zinc-800 rounded-full px-4 py-3 text-xs text-white focus:outline-none border border-zinc-700/60 placeholder-zinc-500">
-        <button type="submit" class="bg-pink-600 text-white text-xs font-bold px-5 py-3 rounded-full active:scale-95 transition-transform shadow-md">Kirim</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- MODAL PROFIL PENGGUNA -->
-  <div id="profileModal" class="fixed inset-0 bg-black z-50 hidden flex flex-col">
-    <div class="p-4 border-b border-zinc-800 flex justify-between items-center">
-      <span class="font-bold text-sm text-white">Profil Saya</span>
-      <button onclick="toggleProfileModal(false)" class="text-zinc-400 font-bold text-xl hover:text-white px-2">&times;</button>
-    </div>
-
-    <div class="flex flex-col items-center pt-6 pb-5 px-4 border-b border-zinc-800/60">
-      <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-pink-500 to-cyan-400 p-1 mb-2 shadow-lg">
-        <div class="w-full h-full rounded-full bg-zinc-900 flex items-center justify-center font-bold text-2xl text-white">
-          C
-        </div>
-      </div>
-      <h2 class="font-bold text-base text-white">@ceopay_official</h2>
-      <p class="text-xs text-zinc-400 mt-0.5">Platform Topup Game & Konten Kreator Indonesia</p>
-
-      <div class="flex gap-8 mt-4 text-center">
-        <div>
-          <span class="block font-bold text-sm text-white">128</span>
-          <span class="text-[10px] text-zinc-400">Mengikuti</span>
-        </div>
-        <div>
-          <span class="block font-bold text-sm text-white">4.8K</span>
-          <span class="text-[10px] text-zinc-400">Pengikut</span>
-        </div>
-        <div>
-          <span class="block font-bold text-sm text-white">35.2K</span>
-          <span class="text-[10px] text-zinc-400">Suka</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="flex-1 overflow-y-auto p-1 bg-black">
-      <div class="text-xs font-semibold text-zinc-400 px-3 py-2 flex items-center justify-between">
-        <span>Video Diposting</span>
-        <span id="userVideoCount" class="text-[10px] text-zinc-500">0 video</span>
-      </div>
-      <div id="profileGrid" class="grid grid-cols-3 gap-1"></div>
-    </div>
-  </div>
-
-  <!-- MODAL PENCARIAN (SEARCH) -->
-  <div id="searchModal" class="fixed inset-0 bg-black/95 z-50 hidden flex flex-col p-4 backdrop-blur-md">
-    <div class="flex items-center gap-2 mb-4 pt-2">
-      <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="Cari video, hashtag, atau kreator..." class="flex-1 bg-zinc-800/90 rounded-full px-4 py-3 text-xs text-white focus:outline-none border border-zinc-700">
-      <button onclick="toggleSearchModal(false)" class="text-xs text-zinc-300 font-bold px-2">Batal</button>
-    </div>
-
-    <div id="searchResults" class="flex-1 overflow-y-auto space-y-3">
-      <p class="text-center text-xs text-zinc-500 py-12">Ketik kata kunci di atas untuk mencari...</p>
-    </div>
-  </div>
-
-  <!-- MODAL INBOX & TEMAN -->
-  <div id="inboxModal" class="fixed inset-0 bg-black z-50 hidden flex flex-col">
-    <div class="p-4 border-b border-zinc-800 flex justify-between items-center">
-      <h3 id="inboxTitle" class="font-bold text-sm text-white">Kotak Masuk</h3>
-      <button onclick="toggleInboxModal(false)" class="text-zinc-400 font-bold text-xl hover:text-white px-2">&times;</button>
-    </div>
-
-    <div class="flex-1 overflow-y-auto p-4 space-y-3">
-      <div class="flex items-center gap-3 bg-zinc-900 p-3.5 rounded-2xl border border-zinc-800/80">
-        <div class="w-10 h-10 rounded-full bg-pink-600/20 text-pink-500 flex items-center justify-center font-bold text-sm">❤️</div>
-        <div>
-          <h4 class="text-xs font-bold text-white">Aktivitas Baru</h4>
-          <p class="text-[11px] text-zinc-400 mt-0.5">@gamer_pro dan 124 orang lainnya menyukai video Anda</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-3 bg-zinc-900 p-3.5 rounded-2xl border border-zinc-800/80">
-        <div class="w-10 h-10 rounded-full bg-cyan-600/20 text-cyan-400 flex items-center justify-center font-bold text-sm">👤</div>
-        <div>
-          <h4 class="text-xs font-bold text-white">Pengikut Baru</h4>
-          <p class="text-[11px] text-zinc-400 mt-0.5">@titl_sutera mulai mengikuti Anda</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- CDN JS Libraries -->
-  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
-
 </body>
-        </html>
+</html>
